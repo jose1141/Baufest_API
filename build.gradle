@@ -1,0 +1,88 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        maven {
+            url = 'https://repo.maven.apache.org/maven2'
+        }
+    }
+    dependencies {
+
+    }
+    ext {
+        karateVersion = '0.9.6'
+    }
+
+}
+
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'scala'
+
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation 'com.intuit.karate:karate-junit4:1.2.0'
+    testImplementation 'com.intuit.karate:karate-apache:0.9.6'
+    testImplementation 'net.masterthought:cucumber-reporting:5.7.1'
+    implementation 'org.scala-lang:scala-library:2.13.8'
+    implementation 'io.gatling.highcharts:gatling-charts-highcharts:3.7.6'
+    testImplementation 'io.gatling:gatling-app:3.7.6'
+    testImplementation 'com.intuit.karate:karate-gatling:1.2.0'
+}
+
+targetCompatibility = "1.8"
+[compileJava, compileTestJava]*.options*.encoding = "UTF-8"
+
+sourceSets {
+    test {
+        resources {
+            srcDir file('src/test/java')
+            exclude '**/*.java'
+            exclude 'src/test/scala'
+
+        }
+    }
+}
+
+test {
+    systemProperty "karate.env", System.properties.getProperty("karate.env")
+    systemProperty "karate.options", System.properties.getProperty("karate.options")
+    systemProperty "karate.company", System.properties.getProperty("karate.company")
+    systemProperty "karate.platform", System.properties.getProperty("karate.platform")
+
+    outputs.upToDateWhen { false }
+}
+
+task loadTest(type: JavaExec) {
+    dependsOn testClasses
+    description = "load test with Gatling"
+    group = "Load Test"
+    classpath = sourceSets.test.runtimeClasspath
+    jvmArgs = [
+            "-Dgatling.core.directory.binaries=${sourceSets.test.output.classesDirs.toString()}",
+            "-Dlogback.configurationFile=${logbackGatlingConfig()}",
+            "-Dkarate.env=local"
+    ]
+    main = "io.gatling.app.Gatling"
+    args = [
+
+            "--simulation", "gatling.PerformanceExJmeter.loginOnlyGatlingFeeder",
+            "--results-folder", "${buildDir}/gatling-results",
+            "--binaries-folder", sourceSets.test.output.classesDirs.toString(), // ignored because of above bug
+            "--bodies-folder", sourceSets.test.resources.srcDirs.toList().first().toString() + "/gatling/bodies",
+    ]
+
+}
+
+
+def logbackGatlingConfig() {
+    return sourceSets.test.resources.find { it.name == 'logback-gatling.xml' };
+}

@@ -1,0 +1,8 @@
+
+### Conclusiones!
+***
+Hemos creado un proyecto usando el framework karate para automatizar un problema!
+
+
+
+
